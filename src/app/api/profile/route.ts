@@ -4,10 +4,12 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import * as bcrypt from "bcryptjs"
 
-export async function GET(req: NextRequest) {
+export const dynamic = "force-dynamic"
+
+export async function GET(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -29,20 +31,27 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(user)
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error"
     console.error("GET /api/profile error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
 export async function PUT(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const body = await req.json()
+    const body = await req.json() as {
+      name?: string
+      email?: string
+      companyName?: string
+      phone?: string
+      password?: string
+    }
     const { name, email, companyName, phone, password } = body
 
     if (!name || !email) {
@@ -59,7 +68,13 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    const updateData: any = {
+    const updateData: {
+      name: string
+      email: string
+      companyName: string | null
+      phone: string | null
+      password?: string
+    } = {
       name,
       email,
       companyName: companyName || null,
@@ -84,8 +99,9 @@ export async function PUT(req: NextRequest) {
     })
 
     return NextResponse.json(updatedUser)
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error"
     console.error("PUT /api/profile error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

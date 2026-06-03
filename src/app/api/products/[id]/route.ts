@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { Unit } from "@prisma/client"
 
+export const dynamic = "force-dynamic"
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -62,9 +64,10 @@ export async function PUT(
     })
 
     return NextResponse.json(updatedProduct)
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error"
     console.error(`PUT /api/products/${params.id} error:`, error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
@@ -109,8 +112,9 @@ export async function DELETE(
     })
 
     return NextResponse.json({ message: "Product deleted successfully" })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error"
     console.error(`DELETE /api/products/${params.id} error:`, error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

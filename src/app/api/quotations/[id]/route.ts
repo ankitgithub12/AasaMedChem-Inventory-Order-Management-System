@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db"
 import { QuotationStatus } from "@prisma/client"
 import { notifyUser, notifyAdmins } from "@/lib/notifications"
 
+export const dynamic = "force-dynamic"
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -205,8 +207,9 @@ export async function PUT(
     }
 
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error"
     console.error(`PUT /api/quotations/${params.id} error:`, error)
-    return NextResponse.json({ error: error.message }, { status: 400 }) // Return 400 for transactional errors like insufficient stock
+    return NextResponse.json({ error: message }, { status: 400 })
   }
 }

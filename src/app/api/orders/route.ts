@@ -6,6 +6,8 @@ import { isUnitCompatible, toBaseUnit } from "@/lib/unit-conversion"
 import { Unit, OrderStatus } from "@prisma/client"
 import { notifyAdmins } from "@/lib/notifications"
 
+export const dynamic = "force-dynamic"
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -48,9 +50,10 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(orders)
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error"
     console.error("GET /api/orders error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
@@ -187,8 +190,9 @@ export async function POST(req: NextRequest) {
     )
 
     return NextResponse.json(resultOrder, { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error"
     console.error("POST /api/orders error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
