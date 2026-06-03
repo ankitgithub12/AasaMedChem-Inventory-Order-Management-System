@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { KeyRound, Mail, AlertCircle, Loader2 } from 'lucide-react'
+
 
 export default function LoginPage() {
   const router = useRouter()
@@ -140,6 +142,13 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
+
+        <div className="text-center text-sm text-slate-400 mt-4">
+          Don't have an account?{' '}
+          <Link href="/register" className="font-semibold text-emerald-400 hover:text-emerald-300 transition-all">
+            Register here
+          </Link>
+        </div>
 
         <div className="mt-6 rounded-lg border border-slate-800/60 bg-slate-950/40 p-4">
           <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">
