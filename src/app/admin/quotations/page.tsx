@@ -94,6 +94,9 @@ export default function AdminQuotationsPage() {
     setAdminNotes(quote.adminNotes || '')
     setQuoteStatus('QUOTED')
     
+    // Always expand the row so the pricing worksheet is visible
+    setExpandedQuotes((prev) => ({ ...prev, [quote.id]: true }))
+
     // Pre-populate prices with current quoted prices OR product base prices as suggestions
     const prices: Record<string, string> = {}
     quote.items.forEach((item) => {
