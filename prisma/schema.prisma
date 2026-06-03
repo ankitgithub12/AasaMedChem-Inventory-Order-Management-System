@@ -1,0 +1,130 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  SELLER
+  BUYER
+}
+
+enum Unit {
+  GRAM
+  KILOGRAM
+  LITER
+  MILLILITER
+  UNIT
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+enum QuotationStatus {
+  PENDING
+  REVIEWED
+  QUOTED
+  CONFIRMED
+  REJECTED
+}
+
+model User {
+  id          String      @id @default(uuid()) @db.Uuid
+  email       String      @unique
+  password    String
+  name        String
+  role        Role
+  companyName String?     @map("company_name")
+  phone       String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  orders      Order[]
+  quotations  Quotation[]
+
+  @@map("users")
+}
+
+model Product {
+  id             String          @id @default(uuid()) @db.Uuid
+  name           String
+  sku            String          @unique
+  description    String?
+  category       String?
+  baseUnit       Unit            @map("base_unit")
+  basePrice      Decimal         @map("base_price") @db.Decimal(20, 6)
+  stockQuantity  Decimal         @map("stock_quantity") @db.Decimal(20, 6)
+  isActive       Boolean         @default(true) @map("is_active")
+  isPricePublic  Boolean         @default(false) @map("is_price_public")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  orderItems     OrderItem[]
+  quotationItems QuotationItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id          String      @id @default(uuid()) @db.Uuid
+  sellerId    String      @map("seller_id") @db.Uuid
+  seller      User        @relation(fields: [sellerId], references: [id])
+  status      OrderStatus @default(PENDING)
+  totalAmount Decimal     @map("total_amount") @db.Decimal(20, 6)
+  notes       String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  items       OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id               String   @id @default(uuid()) @db.Uuid
+  orderId          String   @map("order_id") @db.Uuid
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId        String   @map("product_id") @db.Uuid
+  product          Product  @relation(fields: [productId], references: [id])
+  orderedUnit      Unit     @map("ordered_unit")
+  orderedQuantity  Decimal  @map("ordered_quantity") @db.Decimal(20, 6)
+  baseQuantity     Decimal  @map("base_quantity") @db.Decimal(20, 6)
+  unitPriceAtOrder Decimal  @map("unit_price_at_order") @db.Decimal(20, 6)
+  lineTotal        Decimal  @map("line_total") @db.Decimal(20, 6)
+
+  @@map("order_items")
+}
+
+model Quotation {
+  id           String          @id @default(uuid()) @db.Uuid
+  buyerId      String          @map("buyer_id") @db.Uuid
+  buyer        User            @relation(fields: [buyerId], references: [id])
+  status       QuotationStatus @default(PENDING)
+  buyerNotes   String?         @map("buyer_notes")
+  adminNotes   String?         @map("admin_notes")
+  quotedAmount Decimal?        @map("quoted_amount") @db.Decimal(20, 6)
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  items        QuotationItem[]
+
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id                String    @id @default(uuid()) @db.Uuid
+  quotationId       String    @map("quotation_id") @db.Uuid
+  quotation         Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId         String    @map("product_id") @db.Uuid
+  product           Product   @relation(fields: [productId], references: [id])
+  requestedUnit     Unit      @map("requested_unit")
+  requestedQuantity Decimal   @map("requested_quantity") @db.Decimal(20, 6)
+  baseQuantity      Decimal   @map("base_quantity") @db.Decimal(20, 6)
+  quotedUnitPrice   Decimal?  @map("quoted_unit_price") @db.Decimal(20, 6)
+  lineTotal         Decimal?  @map("line_total") @db.Decimal(20, 6)
+
+  @@map("quotation_items")
+}
