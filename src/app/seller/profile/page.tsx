@@ -27,7 +27,7 @@ export default function SellerProfilePage() {
     if (pwd.length >= 8) score += 1
     if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score += 1
     if (/\d/.test(pwd)) score += 1
-    if (/[^A-Za-50-9]/.test(pwd)) score += 1 // matches any non-alphanumeric character
+    if (/[^A-Za-z0-9]/.test(pwd)) score += 1 // matches any non-alphanumeric character
     
     if (pwd.length < 6 || score < 2) {
       return { label: 'Weak', color: 'bg-rose-500', barWidth: 'w-1/3', textColor: 'text-rose-455' }
