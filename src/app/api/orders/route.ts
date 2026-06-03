@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { isUnitCompatible, toBaseUnit } from "@/lib/unit-conversion"
 import { Unit, OrderStatus } from "@prisma/client"
+import { notifyAdmins } from "@/lib/notifications"
 
 export async function GET(req: NextRequest) {
   try {
@@ -176,6 +177,14 @@ export async function POST(req: NextRequest) {
 
       return newOrder
     })
+
+    // Notify admins of the new order
+    await notifyAdmins(
+      "New Order Placed",
+      `Seller ${session.user.name || "Representative"} has placed order #${resultOrder.id.slice(0, 8)} of ₹${resultOrder.totalAmount.toString()}`,
+      "ORDER_CREATED",
+      "/admin/orders"
+    )
 
     return NextResponse.json(resultOrder, { status: 201 })
   } catch (error: any) {

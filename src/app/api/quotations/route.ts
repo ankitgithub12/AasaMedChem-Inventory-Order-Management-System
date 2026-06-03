@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { isUnitCompatible, toBaseUnit } from "@/lib/unit-conversion"
 import { Unit, QuotationStatus } from "@prisma/client"
+import { notifyAdmins } from "@/lib/notifications"
 
 export async function GET(req: NextRequest) {
   try {
@@ -125,6 +126,14 @@ export async function POST(req: NextRequest) {
         items: true,
       },
     })
+
+    // Notify admins of the new quote request
+    await notifyAdmins(
+      "New Quote Request",
+      `Buyer ${session.user.name || "Customer"} (${session.user.companyName || "No Company"}) has requested a quote #${newQuotation.id.slice(0, 8)}`,
+      "QUOTE_CREATED",
+      "/admin/quotations"
+    )
 
     return NextResponse.json(newQuotation, { status: 201 })
   } catch (error: any) {

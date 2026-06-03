@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { OrderStatus } from "@prisma/client"
+import { notifyUser } from "@/lib/notifications"
 
 export async function PUT(
   req: NextRequest,
@@ -58,6 +59,15 @@ export async function PUT(
 
       return updated
     })
+
+    // Notify the seller who created this order
+    await notifyUser(
+      updatedOrder.sellerId,
+      `Order ${status === OrderStatus.CONFIRMED ? 'Confirmed' : 'Rejected'}`,
+      `Your order #${updatedOrder.id.slice(0, 8)} of ₹${updatedOrder.totalAmount.toString()} has been ${status === OrderStatus.CONFIRMED ? 'confirmed' : 'rejected'} by the Admin`,
+      "ORDER_STATUS_UPDATED",
+      "/seller/orders"
+    )
 
     return NextResponse.json(updatedOrder)
   } catch (error: any) {

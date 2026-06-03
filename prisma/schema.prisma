@@ -47,6 +47,7 @@ model User {
   updatedAt   DateTime    @updatedAt @map("updated_at")
   orders      Order[]
   quotations  Quotation[]
+  notifications Notification[]
 
   @@map("users")
 }
@@ -127,4 +128,18 @@ model QuotationItem {
   lineTotal         Decimal?  @map("line_total") @db.Decimal(20, 6)
 
   @@map("quotation_items")
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   // e.g. "ORDER_CREATED", "ORDER_STATUS_UPDATED", "QUOTE_CREATED", "QUOTE_STATUS_UPDATED"
+  link      String?
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notifications")
 }

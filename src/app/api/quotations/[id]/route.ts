@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { QuotationStatus } from "@prisma/client"
+import { notifyUser, notifyAdmins } from "@/lib/notifications"
 
 export async function PUT(
   req: NextRequest,
@@ -47,6 +48,16 @@ export async function PUT(
           where: { id },
           data: { status, adminNotes },
         })
+
+        // Notify the buyer
+        await notifyUser(
+          updated.buyerId,
+          `Quotation ${status === "REJECTED" ? "Rejected" : "Reviewed"}`,
+          `Your quotation request #${updated.id.slice(0, 8)} has been ${status === "REJECTED" ? "rejected" : "reviewed"} by the Admin`,
+          "QUOTE_STATUS_UPDATED",
+          "/buyer/quotations"
+        )
+
         return NextResponse.json(updated)
       }
 
@@ -104,6 +115,15 @@ export async function PUT(
         })
       })
 
+      // Notify the buyer
+      await notifyUser(
+        updatedQuotation.buyerId,
+        "Quotation Price Quoted",
+        `Admin has quoted ₹${updatedQuotation.quotedAmount?.toString() || "0"} for your quotation request #${updatedQuotation.id.slice(0, 8)}`,
+        "QUOTE_STATUS_UPDATED",
+        "/buyer/quotations"
+      )
+
       return NextResponse.json(updatedQuotation)
     }
 
@@ -123,6 +143,15 @@ export async function PUT(
           where: { id },
           data: { status: QuotationStatus.REJECTED },
         })
+
+        // Notify admins
+        await notifyAdmins(
+          "Quote Declined",
+          `Buyer ${session.user.name || "Customer"} (${session.user.companyName || "No Company"}) has declined quotation request #${updated.id.slice(0, 8)}`,
+          "QUOTE_STATUS_UPDATED",
+          "/admin/quotations"
+        )
+
         return NextResponse.json(updated)
       }
 
@@ -163,6 +192,14 @@ export async function PUT(
           data: { status: QuotationStatus.CONFIRMED },
         })
       })
+
+      // Notify admins
+      await notifyAdmins(
+        "Quote Accepted",
+        `Buyer ${session.user.name || "Customer"} (${session.user.companyName || "No Company"}) has accepted quotation request #${updated.id.slice(0, 8)} for ₹${quotation.quotedAmount?.toString() || "0"}`,
+        "QUOTE_STATUS_UPDATED",
+        "/admin/quotations"
+      )
 
       return NextResponse.json(updated)
     }

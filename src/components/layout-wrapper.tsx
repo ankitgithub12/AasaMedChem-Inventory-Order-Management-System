@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCart } from '@/lib/cart-context'
+import { toast } from 'sonner'
 import {
   LayoutDashboard,
   Package,
@@ -16,7 +17,9 @@ import {
   X,
   User,
   ClipboardList,
-  FlaskConical
+  FlaskConical,
+  Bell,
+  CheckCheck
 } from 'lucide-react'
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -24,6 +27,67 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { sellerCart, buyerCart } = useCart()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [isNotifOpen, setIsNotifOpen] = useState(false)
+
+  const playBeep = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime)
+      gain.gain.setValueAtTime(0.08, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5)
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start()
+      osc.stop(ctx.currentTime + 0.5)
+    } catch (e) {
+      console.error("Audio beep failed:", e)
+    }
+  }
+
+  useEffect(() => {
+    if (!session) return
+
+    const fetchNotifications = async (isInitial = false) => {
+      try {
+        const res = await fetch('/api/notifications')
+        if (!res.ok) return
+        const data = await res.json()
+        
+        setNotifications(prev => {
+          const prevUnreadIds = new Set(prev.filter(n => !n.isRead).map(n => n.id))
+          const currentUnread = data.filter((n: any) => !n.isRead)
+          
+          if (!isInitial) {
+            const newUnread = currentUnread.filter((n: any) => !prevUnreadIds.has(n.id))
+            if (newUnread.length > 0) {
+              playBeep()
+              newUnread.forEach((n: any) => {
+                toast(n.title, {
+                  description: n.message,
+                  action: n.link ? {
+                    label: 'View',
+                    onClick: () => window.location.href = n.link
+                  } : undefined,
+                  duration: 6000,
+                })
+              })
+            }
+          }
+          return data
+        })
+      } catch (e) {
+        console.error("Error fetching notifications:", e)
+      }
+    }
+
+    fetchNotifications(true)
+    const interval = setInterval(() => fetchNotifications(), 6000)
+    return () => clearInterval(interval)
+  }, [session])
 
   if (status === 'loading') {
     return (
@@ -59,6 +123,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       { name: 'Orders', path: '/admin/orders', icon: ShoppingCart },
       { name: 'Quotations', path: '/admin/quotations', icon: FileText },
       { name: 'User Management', path: '/admin/users', icon: Users },
+      { name: 'Profile', path: '/admin/profile', icon: User },
     ],
     SELLER: [
       { name: 'Products', path: '/seller/products', icon: Package },
@@ -69,6 +134,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
         badge: sellerCart.length > 0 ? sellerCart.length : undefined
       },
       { name: 'Orders', path: '/seller/orders', icon: ClipboardList },
+      { name: 'Profile', path: '/seller/profile', icon: User },
     ],
     BUYER: [
       { name: 'Dashboard', path: '/buyer/dashboard', icon: LayoutDashboard },
@@ -91,6 +157,123 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   }
 
   const toggleMobile = () => setIsMobileOpen(!isMobileOpen)
+
+  const NotificationBell = () => {
+    const unreadCount = notifications.filter(n => !n.isRead).length
+
+    const markAsRead = async (id: string, link?: string) => {
+      try {
+        await fetch('/api/notifications', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        })
+        
+        setNotifications(prev =>
+          prev.map(n => (n.id === id ? { ...n, isRead: true } : n))
+        )
+        
+        setIsNotifOpen(false)
+        if (link) {
+          window.location.href = link
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
+    const markAllAsRead = async () => {
+      try {
+        await fetch('/api/notifications', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ all: true }),
+        })
+        
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
+    return (
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsNotifOpen(!isNotifOpen)}
+          className="relative rounded-full p-2 text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition-all focus:outline-none"
+        >
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white ring-2 ring-slate-950">
+              {unreadCount}
+            </span>
+          )}
+        </button>
+
+        {isNotifOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)} />
+            
+            <div className="absolute right-0 mt-2.5 w-80 sm:w-96 max-h-[480px] overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-2xl z-50 flex flex-col font-sans">
+              <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/60 px-4 py-2.5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-white">Notifications</h4>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllAsRead}
+                    className="text-xs font-semibold text-emerald-400 hover:text-emerald-350 flex items-center gap-1 transition-all"
+                  >
+                    <CheckCheck className="h-3.5 w-3.5" /> Mark all read
+                  </button>
+                )}
+              </div>
+
+              <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 max-h-[360px] bg-slate-900/50">
+                {notifications.length === 0 ? (
+                  <div className="p-8 text-center text-slate-500">
+                    <Bell className="mx-auto h-8 w-8 text-slate-700 mb-2" />
+                    <p className="text-xs">No notifications yet</p>
+                  </div>
+                ) : (
+                  notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      onClick={() => markAsRead(n.id, n.link || undefined)}
+                      className={`flex flex-col gap-1 p-3.5 text-left cursor-pointer transition-all hover:bg-slate-850/40 ${
+                        !n.isRead ? 'bg-slate-950/40' : ''
+                      }`}
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <span className={`text-xs font-bold ${!n.isRead ? 'text-white' : 'text-slate-300'}`}>
+                          {n.title}
+                        </span>
+                        {!n.isRead && (
+                          <span className="h-2 w-2 rounded-full bg-emerald-500 mt-1 shrink-0" />
+                        )}
+                      </div>
+                      <span className="text-xs text-slate-400 leading-normal">
+                        {n.message}
+                      </span>
+                      <span className="text-[10px] text-slate-500 mt-1">
+                        {new Date(n.createdAt).toLocaleTimeString('en-IN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        }) + ' • ' + new Date(n.createdAt).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short'
+                        })}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col justify-between bg-slate-900 border-r border-slate-800 text-slate-200">
@@ -163,19 +346,32 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* Mobile Header / Sidebar */}
+      {/* Main Content Container */}
       <div className="flex flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-800 bg-slate-950/80 px-4 backdrop-blur-md md:hidden">
-          <Link href="/" className="flex items-center gap-2">
-            <FlaskConical className="h-6 w-6 text-emerald-500" />
-            <span className="text-lg font-bold tracking-tight text-white">AasaMedChem</span>
-          </Link>
-          <button
-            onClick={toggleMobile}
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-900 hover:text-slate-200"
-          >
-            {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+        {/* Shared Sticky Header */}
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-800 bg-slate-950/80 px-6 backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleMobile}
+              className="rounded-lg p-2 text-slate-400 hover:bg-slate-900 hover:text-slate-200 md:hidden"
+            >
+              {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+            
+            <div className="hidden md:flex items-center gap-2">
+              <span className="text-sm font-semibold text-emerald-450 uppercase tracking-wider">
+                {roleLabels[role]}
+              </span>
+            </div>
+            <div className="md:hidden flex items-center gap-2">
+              <FlaskConical className="h-5 w-5 text-emerald-500" />
+              <span className="font-bold text-white text-sm">AasaMedChem</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+          </div>
         </header>
 
         {isMobileOpen && (
