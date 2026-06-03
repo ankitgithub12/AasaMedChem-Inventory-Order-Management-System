@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Users, Plus, Mail, Shield, Building, Phone, KeyRound, Loader2 } from 'lucide-react'
+import { Users, Plus, Mail, Shield, Building, Phone, KeyRound, Loader2, Eye, EyeOff } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -42,6 +42,27 @@ export default function AdminUsersPage() {
   const [role, setRole] = useState<'ADMIN' | 'SELLER' | 'BUYER'>('SELLER')
   const [companyName, setCompanyName] = useState('')
   const [phone, setPhone] = useState('')
+
+  const [showPassword, setShowPassword] = useState(false)
+
+  const getPasswordStrength = (pwd: string) => {
+    if (!pwd) return { label: '', color: 'bg-slate-800', barWidth: 'w-0', textColor: 'text-slate-500' }
+    let score = 0
+    if (pwd.length >= 6) score += 1
+    if (pwd.length >= 8) score += 1
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score += 1
+    if (/\d/.test(pwd)) score += 1
+    if (/[^A-Za-z0-9]/.test(pwd)) score += 1
+    
+    if (pwd.length < 6 || score < 2) {
+      return { label: 'Weak', color: 'bg-rose-500', barWidth: 'w-1/3', textColor: 'text-rose-455' }
+    } else if (score >= 2 && score < 4) {
+      return { label: 'Medium', color: 'bg-amber-500', barWidth: 'w-2/3', textColor: 'text-amber-400' }
+    } else {
+      return { label: 'Strong', color: 'bg-emerald-500', barWidth: 'w-full', textColor: 'text-emerald-400' }
+    }
+  }
+  const strength = getPasswordStrength(password)
 
   const fetchUsers = async () => {
     try {
@@ -108,6 +129,7 @@ export default function AdminUsersPage() {
       setName('')
       setEmail('')
       setPassword('')
+      setShowPassword(false)
       setRole('SELLER')
       setCompanyName('')
       setPhone('')
@@ -251,14 +273,32 @@ export default function AdminUsersPage() {
                   <KeyRound className="h-4 w-4" />
                 </span>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••"
-                  className="w-full rounded-lg border border-slate-800 bg-slate-950 py-2 pl-9 pr-3 text-sm text-white placeholder-slate-600 focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-800 bg-slate-950 py-2 pl-9 pr-10 text-sm text-white placeholder-slate-600 focus:border-emerald-500 focus:outline-none"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-slate-350 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
+              {password && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-slate-450 uppercase tracking-wider font-semibold">Strength:</span>
+                    <span className={`font-bold uppercase tracking-wider ${strength.textColor}`}>{strength.label}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-850">
+                    <div className={`h-full transition-all duration-355 ${strength.color} ${strength.barWidth}`} />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

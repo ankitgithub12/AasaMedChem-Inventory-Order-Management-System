@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
-import { User, Mail, Building, Phone, KeyRound, Loader2, Save } from 'lucide-react'
+import { User, Mail, Building, Phone, KeyRound, Loader2, Save, Eye, EyeOff } from 'lucide-react'
 
 export default function BuyerProfilePage() {
   const { data: session, update } = useSession()
@@ -17,6 +17,28 @@ export default function BuyerProfilePage() {
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  const getPasswordStrength = (pwd: string) => {
+    if (!pwd) return { label: '', color: 'bg-slate-800', barWidth: 'w-0', textColor: 'text-slate-500' }
+    let score = 0
+    if (pwd.length >= 6) score += 1
+    if (pwd.length >= 8) score += 1
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score += 1
+    if (/\d/.test(pwd)) score += 1
+    if (/[^A-Za-z0-9]/.test(pwd)) score += 1
+    
+    if (pwd.length < 6 || score < 2) {
+      return { label: 'Weak', color: 'bg-rose-500', barWidth: 'w-1/3', textColor: 'text-rose-455' }
+    } else if (score >= 2 && score < 4) {
+      return { label: 'Medium', color: 'bg-amber-500', barWidth: 'w-2/3', textColor: 'text-amber-400' }
+    } else {
+      return { label: 'Strong', color: 'bg-emerald-500', barWidth: 'w-full', textColor: 'text-emerald-400' }
+    }
+  }
+  const strength = getPasswordStrength(password)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -205,13 +227,31 @@ export default function BuyerProfilePage() {
                 <KeyRound className="h-4.5 w-4.5" />
               </span>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••"
-                className="w-full rounded-lg border border-slate-800 bg-slate-950 py-2.5 pl-10 pr-3.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-800 bg-slate-950 py-2.5 pl-10 pr-10 text-sm text-white focus:border-emerald-500 focus:outline-none"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-slate-350 transition-colors"
+              >
+                {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+              </button>
             </div>
+            {password && (
+              <div className="mt-2 space-y-1">
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="text-slate-450 uppercase tracking-wider font-semibold">Strength:</span>
+                  <span className={`font-bold uppercase tracking-wider ${strength.textColor}`}>{strength.label}</span>
+                </div>
+                <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-850">
+                  <div className={`h-full transition-all duration-355 ${strength.color} ${strength.barWidth}`} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Confirm Password */}
@@ -224,12 +264,19 @@ export default function BuyerProfilePage() {
                 <KeyRound className="h-4.5 w-4.5" />
               </span>
               <input
-                type="password"
+                type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••"
-                className="w-full rounded-lg border border-slate-800 bg-slate-950 py-2.5 pl-10 pr-3.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-800 bg-slate-950 py-2.5 pl-10 pr-10 text-sm text-white focus:border-emerald-500 focus:outline-none"
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-slate-350 transition-colors"
+              >
+                {showConfirmPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+              </button>
             </div>
           </div>
         </div>

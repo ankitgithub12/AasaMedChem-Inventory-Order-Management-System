@@ -15,7 +15,7 @@ The system divides responsibilities among three distinct user roles:
 
 ## 2. Live URL and Test Credentials
 
-*   **Production Deployment**: [AasaMedChem Vercel URL](https://aasamedchem-inventory.vercel.app) *(or replace with your actual Vercel live URL)*
+*   **Production Deployment**: [AasaMedChem Vercel URL](https://aasa-med-chem-inventory-order-manag.vercel.app/)
 *   **Test Credentials**:
     *   **Admin**: `admin@aasa.com` / `admin123` (Role: `ADMIN`)
     *   **Seller**: `seller@aasa.com` / `seller123` (Role: `SELLER`)

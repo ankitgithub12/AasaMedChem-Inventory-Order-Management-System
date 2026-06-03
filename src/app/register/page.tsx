@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { UserPlus, Mail, Shield, Building, Phone, KeyRound, Loader2, ArrowLeft, Check, AlertCircle } from 'lucide-react'
+import { UserPlus, Mail, Shield, Building, Phone, KeyRound, Loader2, ArrowLeft, Check, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 
 export default function RegisterPage() {
@@ -16,6 +16,9 @@ export default function RegisterPage() {
   const [companyName, setCompanyName] = useState('')
   const [phone, setPhone] = useState('')
 
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
   const [isLoading, setIsLoading] = useState(false)
   const [submitError, setSubmitError] = useState('')
 
@@ -27,6 +30,25 @@ export default function RegisterPage() {
   const hasMinLength = password.length >= 6
   const hasLetter = /[a-zA-Z]/.test(password)
   const hasNumber = /\d/.test(password)
+
+  const getPasswordStrength = (pwd: string) => {
+    if (!pwd) return { label: '', color: 'bg-slate-800', barWidth: 'w-0', textColor: 'text-slate-500' }
+    let score = 0
+    if (pwd.length >= 6) score += 1
+    if (pwd.length >= 8) score += 1
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score += 1
+    if (/\d/.test(pwd)) score += 1
+    if (/[^A-Za-z0-9]/.test(pwd)) score += 1
+    
+    if (pwd.length < 6 || score < 2) {
+      return { label: 'Weak', color: 'bg-rose-500', barWidth: 'w-1/3', textColor: 'text-rose-450' }
+    } else if (score >= 2 && score < 4) {
+      return { label: 'Medium', color: 'bg-amber-500', barWidth: 'w-2/3', textColor: 'text-amber-400' }
+    } else {
+      return { label: 'Strong', color: 'bg-emerald-500', barWidth: 'w-full', textColor: 'text-emerald-400' }
+    }
+  }
+  const strength = getPasswordStrength(password)
 
   const validateField = (field: string, value: string, currentRole?: 'SELLER' | 'BUYER') => {
     let err = ''
@@ -353,18 +375,36 @@ export default function RegisterPage() {
                   <KeyRound className="h-4.5 w-4.5" />
                 </span>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => handleChange('password', e.target.value)}
                   onBlur={(e) => handleBlur('password', e.target.value)}
                   placeholder="••••••••"
-                  className={`block w-full rounded-lg border bg-slate-950/60 py-2.5 pl-9 pr-3 text-white placeholder-slate-600 focus:outline-none focus:ring-1 sm:text-sm transition-all ${
+                  className={`block w-full rounded-lg border bg-slate-950/60 py-2.5 pl-9 pr-10 text-white placeholder-slate-600 focus:outline-none focus:ring-1 sm:text-sm transition-all ${
                     touched.password && errors.password
                       ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500'
                       : 'border-slate-800 focus:border-emerald-500 focus:ring-emerald-500'
                   }`}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-550 hover:text-slate-350 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                </button>
               </div>
+              {password && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-slate-450 uppercase tracking-wider font-semibold">Strength:</span>
+                    <span className={`font-bold uppercase tracking-wider ${strength.textColor}`}>{strength.label}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-850">
+                    <div className={`h-full transition-all duration-350 ${strength.color} ${strength.barWidth}`} />
+                  </div>
+                </div>
+              )}
               {touched.password && errors.password && (
                 <p className="mt-1 text-xs text-rose-400 flex items-center gap-1.5">
                   <AlertCircle className="h-3.5 w-3.5" /> {errors.password}
@@ -382,17 +422,24 @@ export default function RegisterPage() {
                   <KeyRound className="h-4.5 w-4.5" />
                 </span>
                 <input
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => handleChange('confirmPassword', e.target.value)}
                   onBlur={(e) => handleBlur('confirmPassword', e.target.value)}
                   placeholder="••••••••"
-                  className={`block w-full rounded-lg border bg-slate-950/60 py-2.5 pl-9 pr-3 text-white placeholder-slate-600 focus:outline-none focus:ring-1 sm:text-sm transition-all ${
+                  className={`block w-full rounded-lg border bg-slate-950/60 py-2.5 pl-9 pr-10 text-white placeholder-slate-600 focus:outline-none focus:ring-1 sm:text-sm transition-all ${
                     touched.confirmPassword && errors.confirmPassword
                       ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500'
                       : 'border-slate-800 focus:border-emerald-500 focus:ring-emerald-500'
                   }`}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-550 hover:text-slate-350 transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                </button>
               </div>
               {touched.confirmPassword && errors.confirmPassword && (
                 <p className="mt-1 text-xs text-rose-400 flex items-center gap-1.5">
