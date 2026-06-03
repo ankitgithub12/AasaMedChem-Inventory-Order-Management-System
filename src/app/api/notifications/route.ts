@@ -3,10 +3,10 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -17,21 +17,22 @@ export async function GET(req: NextRequest) {
     })
 
     return NextResponse.json(notifications)
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error"
     console.error("GET /api/notifications error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
 export async function PUT(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const body = await req.json()
-    const { id, all } = body as { id?: string; all?: boolean }
+    const body = await req.json() as { id?: string; all?: boolean }
+    const { id, all } = body
 
     if (all) {
       await prisma.notification.updateMany({
@@ -51,7 +52,10 @@ export async function PUT(req: NextRequest) {
     })
 
     if (!notification || notification.userId !== session.user.id) {
-      return NextResponse.json({ error: "Notification not found or access denied" }, { status: 404 })
+      return NextResponse.json(
+        { error: "Notification not found or access denied" },
+        { status: 404 }
+      )
     }
 
     const updated = await prisma.notification.update({
@@ -60,8 +64,9 @@ export async function PUT(req: NextRequest) {
     })
 
     return NextResponse.json(updated)
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error"
     console.error("PUT /api/notifications error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
